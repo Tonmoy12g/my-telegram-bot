@@ -3618,7 +3618,7 @@ def main():
     logger.info("Initializing bot database and environment...")
     init_db()
 
-    token = "8807027212:AAEQ386r5FNrftaWjToAYsz6R0qZIWNkMhg"
+    token = "8807027212:AAHGk-eCYAyOKIikYLFbjfQ8X08z_uA5kL4"
     if not token:
         raise RuntimeError("BOT_TOKEN is not set. Add your NEW BotFather token as the BOT_TOKEN environment variable.")
     app = ApplicationBuilder().token(token).build()
