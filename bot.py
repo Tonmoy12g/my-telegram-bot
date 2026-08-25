@@ -2,7 +2,7 @@
 
 # -*- coding: utf-8 -*-
 """
-RBK Easy Account Sell Style - Telegram Micro Tasking Bot (Ultimate Edition)
+Trust Vault Mails Style - Telegram Micro Tasking Bot (Ultimate Edition)
 Fully Optimized, High-Speed Broadcast, Auto-Delete Credentials, Multi-Channel Force Join, 
 Dynamic Withdraw Control (ON/OFF & Min/Max), Instant Referral Alerts & Enhanced UI.
 """
@@ -230,8 +230,8 @@ def init_db():
             "fb_2fa_price": "5.00",
             "fb_cookies_price": "7.00",
             "gmail_task_price": "22.00",
-            "ig_default_password": "RBKpass@06",
-            "fb_default_password": "FBKpass@07",
+            "ig_default_password": "RBKpass@05",
+            "fb_default_password": "FBKpass@05",
             "gmail_default_password": "aass1122",
             "wd_bkash_active": "ON",
             "wd_nagad_active": "ON",
@@ -244,11 +244,11 @@ def init_db():
             "max_withdraw_usdt": "100.0",
             "usdt_fee": "0.05",
             "admin_id": "8001997389",
-            "support_handle": "https://t.me/HELP_ZONE_01",
-            "official_channel_link": "https://t.me/HELP_ZONE_01",
+            "support_handle": "https://t.me/TrustVaultMails_Owners",
+            "official_channel_link": "https://t.me/TrustVaultMailsOfficial",
             "ref_bonus_percent": "10.0",
             "force_join_enabled": "OFF",
-            "force_channels_list": "@HELP_ZONE_01|https://t.me/HELP_ZONE_01",
+            "force_channels_list": "@TrustVaultMailsOfficial|https://t.me/TrustVaultMailsOfficial",
             "ig_2fa_active": "ON",
             "ig_seed_active": "ON",
             "fb_2fa_active": "ON",
@@ -260,6 +260,25 @@ def init_db():
         for key, val in default_settings.items():
             cursor.execute("INSERT OR IGNORE INTO admin_settings (key, value) VALUES (?, ?)", (key, str(val)))
 
+        # One-time migration for the old mismatched Force Join default.
+        cursor.execute("SELECT value FROM admin_settings WHERE key = ?", ("force_channels_list",))
+        fj_row = cursor.fetchone()
+        if fj_row and fj_row["value"] == "@TrustVaultMails_Owners|https://t.me/TrustVaultMailsOfficial":
+            cursor.execute(
+                "UPDATE admin_settings SET value = ? WHERE key = ?",
+                ("@TrustVaultMailsOfficial|https://t.me/TrustVaultMailsOfficial", "force_channels_list")
+            )
+
+        # Security hardening: this copy belongs to the new owner only.
+        # Force the configured owner/admin UID and remove every other sub-admin.
+        cursor.execute(
+            "UPDATE admin_settings SET value = ? WHERE key = ?",
+            ("8001997389", "admin_id")
+        )
+        cursor.execute(
+            "DELETE FROM sub_admins WHERE user_id != ?",
+            (8001997389,)
+        )
         conn.commit()
     logger.info("Database initialized successfully.")
 
@@ -314,7 +333,7 @@ MESSAGES = {
         "btn_verify": "✅ ভেরিফাই করুন",
         "force_join_success": "✅ **ধন্যবাদ! আপনার চ্যানেল ভেরিফিকেশন সফল হয়েছে।**",
         "force_join_fail": "❌ আপনি এখনো সবগুলো চ্যানেলে জয়েন করেননি! সব চ্যানেলে জয়েন করে পুনরায় চেষ্টা করুন।",
-        "welcome_msg": "👋 **স্বাগতম, {name}!** 💎✨\n━━━━━━━━━━━━━━━━━━━━━━\nRBK Easy Account Sell Style প্ল্যাটফর্মে আপনাকে স্বাগতম।\nএখানে আপনি সহজ সোশ্যাল মিডিয়া অ্যাকাউন্ট ক্রিয়েশন এবং ভেরিফিকেশনের কাজ সম্পন্ন করে নিশ্চিত ইনকাম করতে পারবেন।\n━━━━━━━━━━━━━━━━━━━━━━\n👉 **কাজ শুরু করতে নিচের 💼 কাজ (Task) বাটনে চাপ দিন।**",
+        "welcome_msg": "👋 **স্বাগতম, {name}!** 💎✨\n━━━━━━━━━━━━━━━━━━━━━━\nTrust Vault Mails Style প্ল্যাটফর্মে আপনাকে স্বাগতম।\nএখানে আপনি সহজ সোশ্যাল মিডিয়া অ্যাকাউন্ট ক্রিয়েশন এবং ভেরিফিকেশনের কাজ সম্পন্ন করে নিশ্চিত ইনকাম করতে পারবেন।\n━━━━━━━━━━━━━━━━━━━━━━\n👉 **কাজ শুরু করতে নিচের 💼 কাজ (Task) বাটনে চাপ দিন।**",
         "ref_new_user_joined": "🎉 **নতুন রেফারেল যোগ হয়েছে!**\n━━━━━━━━━━━━━━━━━━━━━━\n👤 **ইউজার:** {name}\n🆔 **ইউজার আইডি:** <code>{user_id}</code>\n\nকর্মী কাজ সম্পন্ন করলে আপনি পাবেন ১০% সরাসরি কমিশন!",
         "wd_all_disabled": "❌ বর্তমানে সকল পেমেন্ট মেথড বন্ধ রয়েছে। অনুগ্রহ করে পরে চেষ্টা করুন।",
         "task_cat_prompt": "📋 **অনুগ্রহ করে নিচের তালিকা থেকে আপনার পছন্দের কাজের ক্যাটাগরি নির্বাচন করুন:**",
@@ -341,10 +360,10 @@ MESSAGES = {
         "otp_verified_msg": "✅ **ওটিপি সিক্রেট কি ভেরিফাই হয়েছে!**\n━━━━━━━━━━━━━━━━━━━━━━\n🔐 **সিক্রেট কি:** <code>{secret}</code>\n🔢 **লাইভ OTP:** <code>{otp}</code> (ট্যাপ করে কপি করুন)\n━━━━━━━━━━━━━━━━━━━━━━\nএই কোডটি দিয়ে অ্যাকাউন্ট ভেরিফিকেশন সম্পন্ন করুন।\nসম্পন্ন হলে **'✅ একাউন্ট খোলা শেষ'** বাটনে চাপ দিন।",
         "otp_need_verify_first": "⚠️ **প্রথমে 2FA সিক্রেট কি ভেরিফাই করুন!**\n\n'🔑 2FA Code Generate করুন' বাটনে চাপ দিন।",
         "enter_username_prompt": "👤 **আপনার অ্যাকাউন্টের ইউজারনেম/ইমেইল/UID টাইপ করে পাঠান:**",
-        "task_submitted_success": "🎉 **টাস্ক সফলভাবে জমা দেওয়া হয়েছে!** ✨\n━━━━━━━━━━━━━━━━━━━━━━\n🆔 **টাস্ক আইডি:** #{sub_id}\n📱 **টাইপ:** {task_display}\n👤 **ইউজারনেম:** <code>{username}</code>\n━━━━━━━━━━━━━━━━━━━━━━\n🔍 এডমিন রিভিউ করে দ্রুত আপনার ওয়ালেটে ব্যালেন্স যুক্ত করে দেবে। ধন্যবাদ!",
-        "ig_seed_submitted_success": "🎉 **ইনস্টাগ্রাম সীড ডেটা জমা দেওয়া হয়েছে!**\n\n🆔 **টাস্ক আইডি:** #{sub_id}\n🔍 এডমিন রিভিউ করে দ্রুত ব্যালেন্স যুক্ত করবে।",
-        "fb_cookies_submitted_success": "🎉 **ফেসবুক কুকিজ টাস্ক জমা দেওয়া হয়েছে!**\n\n🆔 **টাস্ক আইডি:** #{sub_id}\n🔍 এডমিন রিভিউ করে দ্রুত ব্যালেন্স যুক্ত করবে।",
-        "gmail_submitted_success": "🎉 **জিমেইল টাস্ক জমা দেওয়া হয়েছে!**\n\n🆔 **টাস্ক আইডি:** #{sub_id}\n🔍 এডমিন রিভিউ করে দ্রুত ব্যালেন্স যুক্ত করবে।",
+        "task_submitted_success": "🎉 <b>টাস্ক সফলভাবে জমা দেওয়া হয়েছে!</b> ✨\n━━━━━━━━━━━━━━━━━━━━━━\n🆔 <b>টাস্ক আইডি:</b> #{sub_id}\n📱 <b>টাইপ:</b> {task_display}\n👤 <b>ইউজারনেম:</b> <code>{username}</code>\n━━━━━━━━━━━━━━━━━━━━━━\n🔍 <b>আপনার তথ্য সফলভাবে পাওয়া গেছে!</b>\n\nআগামী ২৪ থেকে ৪৮ ঘণ্টার মধ্যে আপনার একাউন্ট চেক করে ব্যালেন্স যোগ করে দেওয়া হবে।\n\nএডমিন রিভিউ করে দ্রুত আপনার ওয়ালেটে ব্যালেন্স যুক্ত করে দেবে।\n\nধন্যবাদ!",
+        "ig_seed_submitted_success": "🎉 **ইনস্টাগ্রাম সীড ডেটা জমা দেওয়া হয়েছে!**\n\n🆔 **টাস্ক আইডি:** #{sub_id}\n🔍 **আপনার তথ্য সফলভাবে পাওয়া গেছে!**\n\nআগামী ২৪ থেকে ৪৮ ঘণ্টার মধ্যে আপনার একাউন্ট চেক করে ব্যালেন্স যোগ করে দেওয়া হবে।\n\nএডমিন রিভিউ করে দ্রুত আপনার ওয়ালেটে ব্যালেন্স যুক্ত করে দেবে।\n\nধন্যবাদ!",
+        "fb_cookies_submitted_success": "🎉 **ফেসবুক কুকিজ টাস্ক জমা দেওয়া হয়েছে!**\n\n🆔 **টাস্ক আইডি:** #{sub_id}\n🔍 **আপনার তথ্য সফলভাবে পাওয়া গেছে!**\n\nআগামী ২৪ থেকে ৪৮ ঘণ্টার মধ্যে আপনার একাউন্ট চেক করে ব্যালেন্স যোগ করে দেওয়া হবে।\n\nএডমিন রিভিউ করে দ্রুত আপনার ওয়ালেটে ব্যালেন্স যুক্ত করে দেবে।\n\nধন্যবাদ!",
+        "gmail_submitted_success": "🎉 **জিমেইল টাস্ক জমা দেওয়া হয়েছে!**\n\n🆔 **টাস্ক আইডি:** #{sub_id}\n🔍 **আপনার তথ্য সফলভাবে পাওয়া গেছে!**\n\nআগামী ২৪ থেকে ৪৮ ঘণ্টার মধ্যে আপনার একাউন্ট চেক করে ব্যালেন্স যোগ করে দেওয়া হবে।\n\nএডমিন রিভিউ করে দ্রুত আপনার ওয়ালেটে ব্যালেন্স যুক্ত করে দেবে।\n\nধন্যবাদ!",
         "operation_cancelled": "❌ কাজটি বাতিল করা হয়েছে।",
         "returning_main_menu": "🔙 মূল মেনুতে ফিরে যাচ্ছেন...",
 
@@ -379,7 +398,7 @@ MESSAGES = {
         "user_wd_approved": "✅ <b>আপনার উইথড্র রিকোয়েস্ট #{wd_id} সফলভাবে সম্পন্ন হয়েছে!</b>\n💵 <b>৳{amount:.2f}</b> আপনার <code>{number}</code> নম্বরে পাঠানো হয়েছে।",
         "user_wd_rejected": "❌ <b>আপনার উইথড্র রিকোয়েস্ট #{wd_id} রিজেক্ট করা হয়েছে।</b>\n💵 <b>৳{amount:.2f}</b> আপনার ওয়ালেটে রিফান্ড (ফেরত) করা হয়েছে।",
 
-        "admin_dash_title": "👑 **RBK Easy Account Sell Style: অ্যাডমিন প্যানেল** 👑\n━━━━━━━━━━━━━━━━━━━━━━\n👥 **মোট ইউজার:** {total_users} জন\n⏳ **পেন্ডিং কাজ:** {pending_tasks} টি\n⌛ **হোল্ড কাজ:** {held_tasks} টি\n💸 **পেন্ডিং উইথড্র:** {pending_wd} টি\n━━━━━━━━━━━━━━━━━━━━━━\nযেকোনো বিষয় কনফিগার বা ভেরিফাই করতে নিচের মেনুগুলো ব্যবহার করুন।",
+        "admin_dash_title": "👑 **Trust Vault Mails Style: অ্যাডমিন প্যানেল** 👑\n━━━━━━━━━━━━━━━━━━━━━━\n👥 **মোট ইউজার:** {total_users} জন\n⏳ **পেন্ডিং কাজ:** {pending_tasks} টি\n⌛ **হোল্ড কাজ:** {held_tasks} টি\n💸 **পেন্ডিং উইথড্র:** {pending_wd} টি\n━━━━━━━━━━━━━━━━━━━━━━\nযেকোনো বিষয় কনফিগার বা ভেরিফাই করতে নিচের মেনুগুলো ব্যবহার করুন।",
         "admin_no_pending_tasks": "✅ কোনো পেন্ডিং টাস্ক নেই।",
         "admin_pending_tasks_title": "📩 **পেন্ডিং টাস্ক লিস্ট (সর্বশেষ ১০টি):**\n\n",
         "admin_no_held_tasks": "⏳ কোনো হোল্ড টাস্ক নেই।",
@@ -450,7 +469,7 @@ MESSAGES = {
         "btn_verify": "✅ Verify",
         "force_join_success": "✅ **Thank you! Your channel verification was successful.**",
         "force_join_fail": "❌ You haven't joined all channels yet! Please join all channels and try again.",
-        "welcome_msg": "👋 **Welcome, {name}!** 💎✨\n━━━━━━━━━━━━━━━━━━━━━━\nWelcome to RBK Easy Account Sell Style Tasking Bot.\nHere you can earn money by completing simple social account creation and verification tasks.\n━━━━━━━━━━━━━━━━━━━━━━\n👉 **Press the 💼 Task button below to start working.**",
+        "welcome_msg": "👋 **Welcome, {name}!** 💎✨\n━━━━━━━━━━━━━━━━━━━━━━\nWelcome to Trust Vault Mails Style Tasking Bot.\nHere you can earn money by completing simple social account creation and verification tasks.\n━━━━━━━━━━━━━━━━━━━━━━\n👉 **Press the 💼 Task button below to start working.**",
         "ref_new_user_joined": "🎉 **New Referral Joined!**\n━━━━━━━━━━━━━━━━━━━━━━\n👤 **User:** {name}\n🆔 **User ID:** <code>{user_id}</code>\n\nYou will earn 10% lifetime commission on their completed tasks!",
         "wd_all_disabled": "❌ All withdrawal gateways are currently disabled. Please try again later.",
         "task_cat_prompt": "📋 **Please select a task category from the list below:**",
@@ -477,10 +496,10 @@ MESSAGES = {
         "otp_verified_msg": "✅ **OTP Secret Key verified!**\n\n🔐 **Secret Key:** <code>{secret}</code>\n🔢 **Live OTP:** <code>{otp}</code> (Tap to copy)\n\nComplete account verification using this code.\nWhen finished, press the '✅ Account Creation Done' button.",
         "otp_need_verify_first": "⚠️ **Please verify your 2FA Secret Key first!**\n\nPress the '🔑 Generate 2FA Code' button.",
         "enter_username_prompt": "👤 **Type and send your account Username/Email/UID:**",
-        "task_submitted_success": "🎉 **Task submitted successfully!**\n\n🆔 **Task ID:** #{sub_id}\n📱 **Type:** {task_display}\n👤 **Username:** <code>{username}</code>\n🔍 Admin will review it and add balance quickly. Thank you!",
-        "ig_seed_submitted_success": "🎉 **Instagram Seed data submitted!**\n\n🆔 **Task ID:** #{sub_id}\n🔍 Admin will review and add balance.",
-        "fb_cookies_submitted_success": "🎉 **Facebook Cookies task submitted!**\n\n🆔 **Task ID:** #{sub_id}\n🔍 Admin will review and add balance.",
-        "gmail_submitted_success": "🎉 **Gmail task submitted!**\n\n🆔 **Task ID:** #{sub_id}\n🔍 Admin will review and add balance.",
+        "task_submitted_success": "🎉 <b>Task submitted successfully!</b> ✨\n━━━━━━━━━━━━━━━━━━━━━━\n🆔 <b>Task ID:</b> #{sub_id}\n📱 <b>Type:</b> {task_display}\n👤 <b>Username:</b> <code>{username}</code>\n━━━━━━━━━━━━━━━━━━━━━━\n🔍 <b>Your information has been received successfully!</b>\n\nYour account will be checked and the balance will be added within 24–48 hours.\n\nThe admin will review your submission and credit your wallet as soon as possible.\n\nThank you!",
+        "ig_seed_submitted_success": "🎉 **Instagram Seed data submitted!**\n\n🆔 **Task ID:** #{sub_id}\n🔍 **Your information has been received successfully!**\n\nYour account will be checked and the balance will be added within 24–48 hours.\n\nThe admin will review your submission and credit your wallet as soon as possible.\n\nThank you!",
+        "fb_cookies_submitted_success": "🎉 **Facebook Cookies task submitted!**\n\n🆔 **Task ID:** #{sub_id}\n🔍 **Your information has been received successfully!**\n\nYour account will be checked and the balance will be added within 24–48 hours.\n\nThe admin will review your submission and credit your wallet as soon as possible.\n\nThank you!",
+        "gmail_submitted_success": "🎉 **Gmail task submitted!**\n\n🆔 **Task ID:** #{sub_id}\n🔍 **Your information has been received successfully!**\n\nYour account will be checked and the balance will be added within 24–48 hours.\n\nThe admin will review your submission and credit your wallet as soon as possible.\n\nThank you!",
         "operation_cancelled": "❌ Operation cancelled.",
         "returning_main_menu": "🔙 Returning to Main Menu...",
 
@@ -515,7 +534,7 @@ MESSAGES = {
         "user_wd_approved": "✅ <b>Your withdrawal request #{wd_id} has been approved successfully!</b>\n💵 <b>৳{amount:.2f}</b> sent to your <code>{number}</code> account.",
         "user_wd_rejected": "❌ <b>Your withdrawal request #{wd_id} was rejected.</b>\n💵 <b>৳{amount:.2f}</b> refunded back to your wallet.",
 
-        "admin_dash_title": "👑 **RBK Easy Account Sell Style: Admin Panel**\n\n👥 **Total Users:** {total_users}\n⏳ **Pending Tasks:** {pending_tasks}\n⌛ **Hold Tasks:** {held_tasks}\n💸 **Pending Withdrawals:** {pending_wd}\n\nUse the menus below to configure or verify anything.",
+        "admin_dash_title": "👑 **Trust Vault Mails Style: Admin Panel**\n\n👥 **Total Users:** {total_users}\n⏳ **Pending Tasks:** {pending_tasks}\n⌛ **Hold Tasks:** {held_tasks}\n💸 **Pending Withdrawals:** {pending_wd}\n\nUse the menus below to configure or verify anything.",
         "admin_no_pending_tasks": "✅ No pending tasks.",
         "admin_pending_tasks_title": "📩 **Pending Tasks List (Latest 10):**\n\n",
         "admin_no_held_tasks": "⏳ No held tasks.",
@@ -673,45 +692,179 @@ def register_user(tg_user, referred_by_id=None):
         logger.error(f"Error registering user: {e}")
 
 # MULTI-CHANNEL FORCE JOIN CHECKER
+# -----------------------------------------------------------------------------
+# Supported admin input formats:
+#   @publicchannel
+#   @publicchannel|https://t.me/publicchannel
+#   --1004397984847|https://t.me/+invite_hash
+# IMPORTANT: for private/invite-only channels the left side MUST be the real
+# Telegram chat ID (usually -100xxxxxxxxxx) and the bot must be an admin there.
+# -----------------------------------------------------------------------------
+def parse_force_join_channels(raw_value: str) -> List[Tuple[str, str]]:
+    """Parse and normalize the admin-configured force-join channel list."""
+    channels: List[Tuple[str, str]] = []
+    seen = set()
+    raw_value = str(raw_value or "")
+
+    for raw_line in re.split(r"[\r\n]+", raw_value):
+        line = raw_line.strip()
+        if not line:
+            continue
+
+        if "|" in line:
+            identifier, join_link = line.split("|", 1)
+            identifier = identifier.strip()
+            join_link = join_link.strip()
+        else:
+            identifier = line
+            join_link = ""
+
+        # Accept a public t.me URL as the identifier when no explicit ID is given.
+        if (identifier.startswith("https://t.me/") or identifier.startswith("http://t.me/")):
+            tail = identifier.split("t.me/", 1)[1].strip("/")
+            if tail and not tail.startswith("+") and not tail.startswith("joinchat/"):
+                identifier = "@" + tail.lstrip("@")
+
+        if not identifier:
+            continue
+
+        # Normalize @username but preserve numeric Telegram chat IDs.
+        if not identifier.startswith("-") and not identifier.isdigit() and not identifier.startswith("@"):
+            identifier = "@" + identifier
+
+        # If no explicit join URL is supplied, generate a public-channel URL.
+        if not join_link:
+            if identifier.startswith("@"):
+                join_link = f"https://t.me/{identifier[1:]}"
+            elif identifier.startswith("-") or identifier.isdigit():
+                # A numeric private-channel ID cannot be converted into a join URL.
+                # Admin must supply the actual invite link after '|'.
+                join_link = "https://t.me/"
+
+        # Only allow safe Telegram links in the button.
+        if not re.match(r"^https?://t\.me/", join_link, re.IGNORECASE):
+            if identifier.startswith("@"):
+                join_link = f"https://t.me/{identifier[1:]}"
+            else:
+                join_link = "https://t.me/"
+
+        key = identifier.lower()
+        if key not in seen:
+            seen.add(key)
+            channels.append((identifier, join_link))
+
+    return channels
+
+
+def _member_is_joined(member) -> bool:
+    """Return True for every Telegram membership state that counts as joined."""
+    status = getattr(member, "status", "")
+    if status in {"creator", "administrator", "member"}:
+        return True
+    # Telegram can return 'restricted' while the user is still a member.
+    if status == "restricted" and bool(getattr(member, "is_member", False)):
+        return True
+    return False
+
+
 async def check_force_join(user_id: int, context: ContextTypes.DEFAULT_TYPE) -> Tuple[bool, List[Tuple[str, str]]]:
     if is_admin(user_id):
         return True, []
 
-    enabled = get_setting_val("force_join_enabled", "OFF")
+    enabled = str(get_setting_val("force_join_enabled", "OFF")).strip().upper()
     if enabled != "ON":
         return True, []
 
-    channels_raw = get_setting_val("force_channels_list", "@HELP_ZONE_01|https://t.me/HELP_ZONE_01")
-    channels = []
-    for line in channels_raw.splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        if "|" in line:
-            parts = line.split("|", 1)
-            c_id = parts[0].strip()
-            link = parts[1].strip()
-        else:
-            c_id = line.strip()
-            clean_name = c_id.replace('@', '')
-            link = f"https://t.me/{clean_name}"
-        channels.append((c_id, link))
+    raw_channels = get_setting_val(
+        "force_channels_list",
+        "@TrustVaultMailsOfficial|https://t.me/TrustVaultMailsOfficial"
+    )
+    channels = parse_force_join_channels(raw_channels)
 
     if not channels:
+        # Never lock every user out because the admin accidentally saved an empty list.
+        logger.warning("Force Join is ON but force_channels_list is empty; allowing access.")
         return True, []
 
-    unjoined = []
-    for c_id, link in channels:
+    unjoined: List[Tuple[str, str]] = []
+    for channel_identifier, join_link in channels:
         try:
-            chat_identifier = int(c_id) if (c_id.startswith('-') or c_id.isdigit()) else c_id
-            member = await context.bot.get_chat_member(chat_id=chat_identifier, user_id=user_id)
-            if member.status not in ["creator", "administrator", "member"]:
-                unjoined.append((c_id, link))
+            chat_identifier = (
+                int(channel_identifier)
+                if channel_identifier.lstrip("-").isdigit()
+                else channel_identifier
+            )
+            member = await context.bot.get_chat_member(
+                chat_id=chat_identifier,
+                user_id=user_id
+            )
+            if not _member_is_joined(member):
+                unjoined.append((channel_identifier, join_link))
+        except Forbidden as e:
+            # Usually means the bot cannot inspect membership (e.g. it is not an
+            # admin/member of the channel). Fail closed for security and log clearly.
+            logger.error(
+                "Force Join cannot inspect %s. Make the bot an administrator in that channel. Error: %s",
+                channel_identifier, e
+            )
+            unjoined.append((channel_identifier, join_link))
+        except BadRequest as e:
+            logger.error(
+                "Force Join BadRequest for %s. Check the chat ID/username and bot permissions. Error: %s",
+                channel_identifier, e
+            )
+            unjoined.append((channel_identifier, join_link))
+        except TelegramError as e:
+            logger.error("Force Join Telegram error for %s: %s", channel_identifier, e)
+            unjoined.append((channel_identifier, join_link))
         except Exception as e:
-            logger.error(f"Force join check error for channel {c_id}: {e}")
-            unjoined.append((c_id, link))
+            logger.exception("Unexpected Force Join error for %s: %s", channel_identifier, e)
+            unjoined.append((channel_identifier, join_link))
 
     return (len(unjoined) == 0), unjoined
+
+
+async def send_force_join_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE,
+                                 unjoined_channels: Optional[List[Tuple[str, str]]] = None):
+    """Render the force-join buttons consistently from every entry point."""
+    user = update.effective_user
+    if not user:
+        return
+    user_id = user.id
+
+    if unjoined_channels is None:
+        _, unjoined_channels = await check_force_join(user_id, context)
+
+    buttons = []
+    for idx, (_channel_id, link) in enumerate(unjoined_channels, 1):
+        if link == "https://t.me/":
+            # Do not render a useless URL button for a numeric ID without an invite.
+            continue
+        buttons.append([
+            InlineKeyboardButton(f"🔗 {tr(user_id, 'btn_join_channel')} {idx}", url=link)
+        ])
+
+    buttons.append([
+        InlineKeyboardButton(tr(user_id, "btn_verify"), callback_data="check_force_join_cb")
+    ])
+
+    text = tr(user_id, "force_join_msg")
+    if not buttons[:-1]:
+        text += "\n\n⚠️ Admin has not configured valid join links yet."
+
+    if update.callback_query:
+        await update.callback_query.edit_message_text(
+            text,
+            reply_markup=InlineKeyboardMarkup(buttons),
+            parse_mode=ParseMode.MARKDOWN
+        )
+    elif update.message:
+        await update.message.reply_text(
+            text,
+            reply_markup=InlineKeyboardMarkup(buttons),
+            parse_mode=ParseMode.MARKDOWN
+        )
+
 
 def generate_random_username() -> str:
     prefix = "ig_"
@@ -956,18 +1109,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     is_joined, unjoined_channels = await check_force_join(user_id, context)
     if not is_joined:
-        buttons = []
-        for idx, (c_id, link) in enumerate(unjoined_channels, 1):
-            btn_label = f"🔗 Join Channel {idx}"
-            buttons.append([InlineKeyboardButton(btn_label, url=link)])
-        
-        buttons.append([InlineKeyboardButton(tr(user_id, "btn_verify"), callback_data="check_force_join_cb")])
-
-        await update.message.reply_text(
-            tr(user_id, "force_join_msg"),
-            reply_markup=InlineKeyboardMarkup(buttons),
-            parse_mode=ParseMode.MARKDOWN
-        )
+        await send_force_join_prompt(update, context, unjoined_channels)
         return ConversationHandler.END
 
     welcome_msg = tr(user_id, "welcome_msg", name=html.escape(user.first_name))
@@ -981,11 +1123,11 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def check_force_join_cb(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    await query.answer()
     user_id = query.from_user.id
 
-    is_joined, _ = await check_force_join(user_id, context)
+    is_joined, unjoined_channels = await check_force_join(user_id, context)
     if is_joined:
+        await query.answer(tr(user_id, "force_join_success"), show_alert=True)
         await safe_delete_message(context, query.message.chat_id, query.message.message_id)
         await context.bot.send_message(
             chat_id=user_id,
@@ -995,6 +1137,11 @@ async def check_force_join_cb(update: Update, context: ContextTypes.DEFAULT_TYPE
         )
     else:
         await query.answer(tr(user_id, "force_join_fail"), show_alert=True)
+        # Keep the verification UI visible so the user can immediately retry.
+        try:
+            await send_force_join_prompt(update, context, unjoined_channels)
+        except Exception as e:
+            logger.error("Failed to refresh Force Join prompt: %s", e)
 
 # -----------------------------------------------------------------------------
 # TASK WORKFLOWS
@@ -1776,6 +1923,11 @@ async def handle_withdraw_amount(update: Update, context: ContextTypes.DEFAULT_T
 async def handle_referrals(update: Update, context: ContextTypes.DEFAULT_TYPE):
     clear_user_state(context)
     user_id = update.effective_user.id
+    is_joined, _ = await check_force_join(user_id, context)
+    if not is_joined:
+        await start_command(update, context)
+        return ConversationHandler.END
+
     user_data = get_user_data(user_id)
     if not user_data:
         register_user(update.effective_user)
@@ -1797,6 +1949,11 @@ async def handle_referrals(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     clear_user_state(context)
     user_id = update.effective_user.id
+    is_joined, _ = await check_force_join(user_id, context)
+    if not is_joined:
+        await start_command(update, context)
+        return ConversationHandler.END
+
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT full_name, balance FROM users WHERE is_banned = 0 ORDER BY balance DESC LIMIT 10")
@@ -1816,8 +1973,13 @@ async def handle_leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def handle_support(update: Update, context: ContextTypes.DEFAULT_TYPE):
     clear_user_state(context)
     user_id = update.effective_user.id
-    support_handle = get_setting_val("support_handle", "https://t.me/HELP_ZONE_01")
-    official_channel = get_setting_val("official_channel_link", "https://t.me/HELP_ZONE_01")
+    is_joined, _ = await check_force_join(user_id, context)
+    if not is_joined:
+        await start_command(update, context)
+        return ConversationHandler.END
+
+    support_handle = get_setting_val("support_handle", "https://t.me/TrustVaultMails_Owners")
+    official_channel = get_setting_val("official_channel_link", "https://t.me/TrustVaultMailsOfficial")
 
     support_text = tr(user_id, "support_text")
 
@@ -1835,6 +1997,11 @@ async def handle_support(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
     clear_user_state(context)
     user_id = update.effective_user.id
+    is_joined, _ = await check_force_join(user_id, context)
+    if not is_joined:
+        await start_command(update, context)
+        return ConversationHandler.END
+
     buttons = [
         [InlineKeyboardButton("🇧🇩 বাংলা", callback_data="lang_bn"),
          InlineKeyboardButton("🇺🇸 English", callback_data="lang_en")]
@@ -2660,12 +2827,18 @@ async def admin_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
         return
 
     if data == "adm_edit_force_channels_list":
-        current_list = get_setting_val("force_channels_list", "@HELP_ZONE_01|https://t.me/HELP_ZONE_01")
+        current_list = get_setting_val(
+            "force_channels_list",
+            "@TrustVaultMailsOfficial|https://t.me/TrustVaultMailsOfficial"
+        )
         await query.edit_message_text(
-            f"📢 **ফোর্স জয়েন চ্যানেল লিস্ট সেট করুন:**\n━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"প্রতি লাইনে একটি করে চ্যানেল আইডি/ইউজারনেম এবং লিঙ্ক দিন (ফরম্যাট: `Channel_ID|Invite_Link`)\n\n"
-            f"**বর্তমান লিস্ট:**\n<code>{current_list}</code>\n\n"
-            f"👉 নতুন লিস্ট নিচে টাইপ করে পাঠান:",
+            "📢 <b>ফোর্স জয়েন চ্যানেল লিস্ট সেট করুন</b>\n━━━━━━━━━━━━━━━━━━━━━━\n"
+            "প্রতি লাইনে একটি করে চ্যানেল দিন।\n\n"
+            "<b>Public channel:</b> <code>@channelusername|https://t.me/channelusername</code>\n"
+            "<b>Private channel:</b> <code>--1004397984847|https://t.me/+invite_hash</code>\n\n"
+            "⚠️ Private channel-এর ক্ষেত্রে বাম পাশে অবশ্যই আসল <b>Chat ID</b> দিতে হবে এবং bot-কে ওই channel-এর administrator করতে হবে।\n\n"
+            f"<b>বর্তমান লিস্ট:</b>\n<code>{html.escape(current_list)}</code>\n\n"
+            "👉 নতুন লিস্ট নিচে পাঠান:",
             parse_mode=ParseMode.HTML
         )
         return STATE_ADMIN_FORCE_CHANNELS_EDIT
@@ -2715,14 +2888,14 @@ async def admin_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
 
     if data == "adm_usr_add_bal":
         await query.edit_message_text(
-            "💰 **ইউজারের ওয়ালেটে ব্যালেন্স যোগ করুন:**\n\nফরম্যাট: `ইউজার_আইডি পরিমাণ` (যেমন: `7327642910 50`)",
+            "💰 **ইউজারের ওয়ালেটে ব্যালেন্স যোগ করুন:**\n\nফরম্যাট: `ইউজার_আইডি পরিমাণ` (যেমন: `8001997389 50`)",
             parse_mode=ParseMode.MARKDOWN
         )
         return STATE_ADMIN_ADD_BAL
 
     if data == "adm_usr_sub_bal":
         await query.edit_message_text(
-            "💸 **ইউজারের ওয়ালেট থেকে ব্যালেন্স কাটুন:**\n\nফরম্যাট: `ইউজার_আইডি পরিমাণ` (যেমন: `7327642910 20`)",
+            "💸 **ইউজারের ওয়ালেট থেকে ব্যালেন্স কাটুন:**\n\nফরম্যাট: `ইউজার_আইডি পরিমাণ` (যেমন: `8001997389 20`)",
             parse_mode=ParseMode.MARKDOWN
         )
         return STATE_ADMIN_SUB_BAL
@@ -3116,7 +3289,7 @@ async def process_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE)
             await update.message.reply_text(tr(user_id, "admin_export_no_tasks"), reply_markup=get_admin_keyboard(user_id))
         else:
             buffer = io.StringIO()
-            buffer.write(f"RBK Easy Account Sell STYLE - USER {target_id} REPORT\n")
+            buffer.write(f"Trust Vault Mails STYLE - USER {target_id} REPORT\n")
             buffer.write("="*50+"\n")
             for s in subs:
                 buffer.write(f"ID:{s['submission_id']} Type:{s['task_type']} User:{s['submitted_username']} Pass:{s['submitted_password']} Status:{s['status']}\n")
@@ -3198,8 +3371,27 @@ async def process_admin_force_channels_edit(update: Update, context: ContextType
         clear_user_state(context)
         return ConversationHandler.END
 
-    set_setting_val("force_channels_list", text)
-    await update.message.reply_text("✅ **ফোর্স জয়েন চ্যানেল লিস্ট সফলভাবে আপডেট করা হয়েছে!**", reply_markup=get_admin_keyboard(user_id))
+    channels = parse_force_join_channels(text)
+    if not channels:
+        await update.message.reply_text(
+            "❌ কোনো বৈধ channel পাওয়া যায়নি।\n\n"
+            "উদাহরণ: <code>@mychannel|https://t.me/mychannel</code>",
+            parse_mode=ParseMode.HTML,
+            reply_markup=get_cancel_keyboard(user_id)
+        )
+        return STATE_ADMIN_FORCE_CHANNELS_EDIT
+
+    # Store a clean one-entry-per-line representation.
+    normalized = []
+    for channel_id, join_link in channels:
+        normalized.append(f"{channel_id}|{join_link}")
+    set_setting_val("force_channels_list", "\n".join(normalized))
+    await update.message.reply_text(
+        "✅ <b>ফোর্স জয়েন চ্যানেল লিস্ট সফলভাবে আপডেট হয়েছে!</b>\n\n"
+        f"📢 Configured channels: <b>{len(normalized)}</b>",
+        parse_mode=ParseMode.HTML,
+        reply_markup=get_admin_keyboard(user_id)
+    )
     clear_user_state(context)
     return ConversationHandler.END
 
@@ -3345,7 +3537,7 @@ async def process_admin_add_bal(update: Update, context: ContextTypes.DEFAULT_TY
     text = update.message.text.strip()
     parts = text.split()
     if len(parts) != 2 or not parts[0].isdigit():
-        await update.message.reply_text("❌ সঠিক ফরম্যাটে পাঠাবে (যেমন: `7327642910 50`)")
+        await update.message.reply_text("❌ সঠিক ফরম্যাটে পাঠাবে (যেমন: `8001997389 50`)")
         return STATE_ADMIN_ADD_BAL
 
     target_id = int(parts[0])
@@ -3381,7 +3573,7 @@ async def process_admin_sub_bal(update: Update, context: ContextTypes.DEFAULT_TY
     text = update.message.text.strip()
     parts = text.split()
     if len(parts) != 2 or not parts[0].isdigit():
-        await update.message.reply_text("❌ সঠিক ফরম্যাটে পাঠাবে (যেমন: `7327642910 20`)")
+        await update.message.reply_text("❌ সঠিক ফরম্যাটে পাঠাবে (যেমন: `8001997389 20`)")
         return STATE_ADMIN_SUB_BAL
 
     target_id = int(parts[0])
@@ -3422,15 +3614,13 @@ async def global_error_handler(update: object, context: ContextTypes.DEFAULT_TYP
 # -----------------------------------------------------------------------------
 # MAIN APPLICATION SETUP
 # -----------------------------------------------------------------------------
-# ➕ PythonAnywhere-এর মতো webhook-based (WSGI) হোস্টিং-এ চালানোর জন্য main() কে দুই ভাগ করা
-# হয়েছে: build_application() শুধু Application তৈরি করে ও সব হ্যান্ডলার যোগ করে, কিন্তু
-# run_polling() কল করে না — এটা flask_app.py থেকে ইমপোর্ট করে webhook দিয়ে চালানো হবে।
-# main() নিজের কম্পিউটারে টেস্ট করার জন্য এখনো polling দিয়েই চলবে (python bot.py দিলে)।
-def build_application():
+def main():
     logger.info("Initializing bot database and environment...")
     init_db()
 
-    token = os.getenv("BOT_TOKEN", "8807027212:AAEQ386r5FNrftaWjToAYsz6R0qZIWNkMhg")
+    token = os.getenv("BOT_TOKEN")
+    if not token:
+        raise RuntimeError("BOT_TOKEN is not set. Add your NEW BotFather token as the BOT_TOKEN environment variable.")
     app = ApplicationBuilder().token(token).build()
 
     app.add_error_handler(global_error_handler)
@@ -3727,14 +3917,7 @@ def build_application():
         pattern="^(adm_app_sub_|adm_hold_sub_|adm_rej_prompt_|adm_rej_act_|adm_rej_custom_|adm_app_wd_|adm_rej_wd_|adm_back_to_admin|adm_toggle_|adm_edit_|adm_add_subadmin|adm_rem_subadmin|adm_usr_)"
     ))
 
-    logger.info("RBK Easy Account Sell Style Bot application built successfully!")
-    return app
-
-def main():
-    # ➕ এটা শুধু নিজের কম্পিউটারে/VPS-এ সরাসরি `python bot.py` দিয়ে টেস্ট বা রান করার জন্য —
-    # PythonAnywhere-এ এই ফাংশনটা ব্যবহার হবে না, ওখানে flask_app.py webhook দিয়ে চালাবে।
-    app = build_application()
-    logger.info("RBK Easy Account Sell Style Bot successfully started (polling mode)!")
+    logger.info("Trust Vault Mails Style Bot successfully started!")
     app.run_polling()
 
 if __name__ == "__main__":
