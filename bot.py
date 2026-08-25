@@ -2961,11 +2961,28 @@ async def admin_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
 
         task_display = sub["task_type"].upper()
         sub_username = html.escape(sub['submitted_username'])
+
+        if sub["task_type"].lower() == "gmail":
+            with get_db() as balance_conn:
+                balance_cursor = balance_conn.cursor()
+                balance_cursor.execute("SELECT balance FROM users WHERE user_id = ?", (sub["user_id"],))
+                balance_row = balance_cursor.fetchone()
+            user_balance = balance_row["balance"] if balance_row else 0
+            amount = sub["reward_amount"]
+            text = (
+                "🎉 <b>টাস্ক সফলভাবে এপ্রুভ হয়েছে!</b>\n\n"
+                "📋 <b>টাস্ক:</b> 📧 Gmail Sell\n"
+                "🔹 <b>স্ট্যাটাস:</b> ✅ Approved\n"
+                f"💰 <b>যোগকৃত অর্থ:</b> ৳{amount:.2f}\n"
+                f"💳 <b>বর্তমান ব্যালেন্স:</b> ৳{user_balance:.2f}\n\n"
+                "<i>TrustVault Mails-এর সাথে থাকার জন্য ধন্যবাদ!</i>"
+            )
+        else:
+            text = tr(sub["user_id"], "user_task_approved", task_display=task_display, username=sub_username, reward=sub['reward_amount'])
+
         try:
             await context.bot.send_message(
-                chat_id=sub["user_id"],
-                text=tr(sub["user_id"], "user_task_approved", task_display=task_display, username=sub_username, reward=sub['reward_amount']),
-                parse_mode=ParseMode.HTML
+                chat_id=sub["user_id"], text=text, parse_mode=ParseMode.HTML
             )
         except Exception as e:
             logger.error(f"Error sending approval DM to user {sub['user_id']}: {e}")
@@ -3034,11 +3051,21 @@ async def admin_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
             task_display = sub["task_type"].upper()
             sub_username = html.escape(sub['submitted_username'])
             esc_reason = html.escape(reason)
+
+            if sub["task_type"].lower() == "gmail":
+                text = (
+                    "❌ <b>টাস্কটি গ্রহণযোগ্য হয়নি!</b>\n\n"
+                    "📋 <b>টাস্ক:</b> 📧 Gmail Sell\n"
+                    "🔹 <b>স্ট্যাটাস:</b> ❌ Rejected\n"
+                    f"⚠️ <b>কারণ:</b> {esc_reason}\n\n"
+                    "<i>সঠিক তথ্য দিয়ে পুনরায় চেষ্টা করুন।</i>"
+                )
+            else:
+                text = tr(sub["user_id"], "user_task_rejected", task_display=task_display, username=sub_username, reason=esc_reason)
+
             try:
                 await context.bot.send_message(
-                    chat_id=sub["user_id"],
-                    text=tr(sub["user_id"], "user_task_rejected", task_display=task_display, username=sub_username, reason=esc_reason),
-                    parse_mode=ParseMode.HTML
+                    chat_id=sub["user_id"], text=text, parse_mode=ParseMode.HTML
                 )
             except Exception as e:
                 logger.error(f"Error sending reject DM to user {sub['user_id']}: {e}")
