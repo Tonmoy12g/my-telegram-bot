@@ -596,6 +596,16 @@ def tr(user_id_or_lang: Union[int, str, None], key: str, **kwargs) -> str:
 # -----------------------------------------------------------------------------
 # HELPER FUNCTIONS
 # -----------------------------------------------------------------------------
+
+# Strict Gmail-only validation.
+GMAIL_REGEX = re.compile(
+    r"^[A-Za-z0-9](?:[A-Za-z0-9._%+-]{0,62})@gmail\.com$",
+    re.IGNORECASE,
+)
+
+def is_valid_gmail_address(value: str) -> bool:
+    return bool(GMAIL_REGEX.fullmatch((value or "").strip()))
+
 def get_setting_val(key: str, default: str = "") -> str:
     try:
         with get_db() as conn:
@@ -989,6 +999,17 @@ def get_task_done_keyboard(user_id: int = None, lang: str = None) -> ReplyKeyboa
     ]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
+
+def get_gmail_done_keyboard(user_id: int = None, lang: str = None) -> InlineKeyboardMarkup:
+    l = lang or get_user_lang(user_id)
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(tr(l, "btn_done"), callback_data="gmail_done")],
+        [
+            InlineKeyboardButton(tr(l, "btn_cancel"), callback_data="gmail_cancel"),
+            InlineKeyboardButton(tr(l, "btn_main_menu"), callback_data="gmail_main_menu"),
+        ],
+    ])
+
 get_seed_done_keyboard = get_task_done_keyboard
 
 def get_instagram_task_keyboard(user_id: int = None, lang: str = None) -> ReplyKeyboardMarkup:
@@ -1223,7 +1244,7 @@ async def handle_gmail_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["assigned_pass"] = fixed_pass
 
     msg = tr(user_id, "gmail_guidelines", price=price, fixed_pass=fixed_pass)
-    sent_m = await update.message.reply_text(msg, reply_markup=get_task_done_keyboard(user_id), parse_mode=ParseMode.HTML)
+    sent_m = await update.message.reply_text(msg, reply_markup=get_gmail_done_keyboard(user_id), parse_mode=ParseMode.HTML)
     context.user_data["cred_msg_id"] = sent_m.message_id
     return STATE_TASK_GMAIL_INPUT
 
@@ -1580,40 +1601,118 @@ async def process_fb_cookies_str(update: Update, context: ContextTypes.DEFAULT_T
     return ConversationHandler.END
 
 async def process_gmail_submission(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Validate and stage Gmail; database write happens only after Done."""
     user_id = update.effective_user.id
-    gmail_acc = update.message.text.strip()
+    gmail_acc = (update.message.text or "").strip()
 
-    if is_menu_or_admin_button(gmail_acc):
-        clear_user_state(context)
-        return ConversationHandler.END
+    if is_menu_or_admin_button(gmail_acc) or not is_valid_gmail_address(gmail_acc):
+        await update.message.reply_text(
+            "❌ সঠিক Gmail এড্রেস প্রদান করুন (যেমন: example@gmail.com)!",
+            reply_markup=get_gmail_done_keyboard(user_id),
+        )
+        return STATE_TASK_GMAIL_INPUT
+
+    # Store only in temporary conversation state.
+    context.user_data["pending_gmail"] = gmail_acc.lower()
+
+    await update.message.reply_text(
+        f"✅ Gmail এড্রেস গ্রহণ করা হয়েছে: <code>{html.escape(gmail_acc.lower())}</code>\n\n"
+        "এখন নিচের '✅ জমা দিন (Done)' বাটনে চাপ দিয়ে সাবমিশন সম্পন্ন করুন।",
+        reply_markup=get_gmail_done_keyboard(user_id),
+        parse_mode=ParseMode.HTML,
+    )
+    return STATE_TASK_GMAIL_INPUT
+
+
+async def gmail_done_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    user_id = update.effective_user.id
+    gmail_acc = (context.user_data.get("pending_gmail") or "").strip()
+
+    if not is_valid_gmail_address(gmail_acc):
+        await query.answer(
+            "❌ আপনি এখনো Gmail এড্রেস জমা দেননি! আগে সঠিক Gmail এড্রেসটি লিখুন।",
+            show_alert=True,
+        )
+        return STATE_TASK_GMAIL_INPUT
+
+    await query.answer()
 
     if "cred_msg_id" in context.user_data:
         await safe_delete_message(context, update.effective_chat.id, context.user_data["cred_msg_id"])
 
-    password = context.user_data.get("assigned_pass", "aass1122")
-    reward = context.user_data.get("reward_amount", 22.0)
+    password = context.user_data.get(
+        "assigned_pass",
+        get_setting_val("gmail_default_password", "aass1122"),
+    )
+    reward = float(context.user_data.get(
+        "reward_amount",
+        get_setting_val("gmail_task_price", "20.00"),
+    ))
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute(
             """
-            INSERT INTO task_submissions 
-            (user_id, task_type, submitted_username, submitted_password, secret_key_2fa, status, reward_amount, is_archived, created_at, updated_at) 
-            VALUES (?, 'gmail', ?, ?, 'N/A', 'Pending', ?, 0, ?, ?)
+            INSERT INTO task_submissions
+            (user_id, task_type, submitted_username, submitted_password, secret_key_2fa,
+             status, reward_amount, is_archived, reject_reason, created_at, updated_at)
+            VALUES (?, 'gmail', ?, ?, 'N/A', 'Pending', ?, 0, '', ?, ?)
             """,
-            (user_id, gmail_acc, password, reward, now, now)
+            (user_id, gmail_acc, password, reward, now, now),
         )
         submission_id = cursor.lastrowid
         conn.commit()
 
-    await update.message.reply_text(
-        tr(user_id, "gmail_submitted_success", sub_id=submission_id),
+    try:
+        await query.message.edit_reply_markup(reply_markup=None)
+    except Exception:
+        pass
+
+    await context.bot.send_message(
+        chat_id=user_id,
+        text=tr(user_id, "gmail_submitted_success", sub_id=submission_id),
         reply_markup=get_main_keyboard(user_id),
-        parse_mode=ParseMode.MARKDOWN
+        parse_mode=ParseMode.MARKDOWN,
     )
-    await notify_admins_new_submission(context, submission_id, user_id, "gmail", gmail_acc, password, "N/A", "", reward)
+    await notify_admins_new_submission(
+        context, submission_id, user_id, "gmail", gmail_acc, password, "N/A", "", reward
+    )
+
     clear_user_state(context)
+    return ConversationHandler.END
+
+
+async def gmail_cancel_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    clear_user_state(context)
+    try:
+        await query.message.edit_reply_markup(reply_markup=None)
+    except Exception:
+        pass
+    await context.bot.send_message(
+        chat_id=update.effective_user.id,
+        text=tr(update.effective_user.id, "operation_cancelled"),
+        reply_markup=get_main_keyboard(update.effective_user.id),
+    )
+    return ConversationHandler.END
+
+
+async def gmail_main_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    clear_user_state(context)
+    try:
+        await query.message.edit_reply_markup(reply_markup=None)
+    except Exception:
+        pass
+    await context.bot.send_message(
+        chat_id=update.effective_user.id,
+        text=tr(update.effective_user.id, "returning_main_menu"),
+        reply_markup=get_main_keyboard(update.effective_user.id),
+    )
     return ConversationHandler.END
 
 # --- ADMIN NOTIFICATION HELPER ---
@@ -3002,48 +3101,17 @@ async def admin_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
     if data.startswith("adm_rej_prompt_"):
         sub_id = int(data.replace("adm_rej_prompt_", ""))
         buttons = [
-            [InlineKeyboardButton("📋 Default Reason", callback_data=f"adm_rej_act_{sub_id}_default")],
-            [InlineKeyboardButton("🔑 Wrong Password", callback_data=f"adm_rej_act_{sub_id}_wrongpass")],
             [InlineKeyboardButton("📝 Custom Reason", callback_data=f"adm_rej_custom_{sub_id}")]
         ]
         await query.edit_message_text("❌ Select rejection reason:", reply_markup=InlineKeyboardMarkup(buttons))
         return
 
-    # Reject Action
+    # Legacy fixed-reason callbacks are disabled.
     if data.startswith("adm_rej_act_"):
-        parts = data.replace("adm_rej_act_", "").split("_")
-        sub_id = int(parts[0])
-        reason_key = parts[1]
-        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-        if reason_key == "default":
-            reason = "Account issue detected during review"
-        elif reason_key == "wrongpass":
-            reason = "Wrong password or username mismatch"
-        else:
-            reason = "Submission criteria not met"
-
-        with get_db() as conn:
-            cursor = conn.cursor()
-            cursor.execute("UPDATE task_submissions SET status = 'Rejected', reject_reason = ?, updated_at = ? WHERE submission_id = ?", (reason, now, sub_id))
-            cursor.execute("SELECT * FROM task_submissions WHERE submission_id = ?", (sub_id,))
-            sub = cursor.fetchone()
-            conn.commit()
-
-        if sub:
-            task_display = sub["task_type"].upper()
-            sub_username = html.escape(sub['submitted_username'])
-            esc_reason = html.escape(reason)
-            try:
-                await context.bot.send_message(
-                    chat_id=sub["user_id"],
-                    text=tr(sub["user_id"], "user_task_rejected", task_display=task_display, username=sub_username, reason=esc_reason),
-                    parse_mode=ParseMode.HTML
-                )
-            except Exception as e:
-                logger.error(f"Error sending reject DM to user {sub['user_id']}: {e}")
-
-        await query.edit_message_text(f"❌ Task #{sub_id} rejected.")
+        await query.answer(
+            "❌ অনুগ্রহ করে Custom Reason নির্বাচন করে কারণটি লিখুন।",
+            show_alert=True,
+        )
         return
 
     # Approve Withdraw
@@ -3794,6 +3862,9 @@ def main():
                 MessageHandler(filters.TEXT & ~filters.COMMAND, process_fb_cookies_str),
             ],
             STATE_TASK_GMAIL_INPUT: [
+                CallbackQueryHandler(gmail_done_callback, pattern=r"^gmail_done$"),
+                CallbackQueryHandler(gmail_cancel_callback, pattern=r"^gmail_cancel$"),
+                CallbackQueryHandler(gmail_main_menu_callback, pattern=r"^gmail_main_menu$"),
                 MessageHandler(filters.Regex(btn_cancel_re), cancel_operation),
                 MessageHandler(filters.Regex(btn_main_menu_re), start_command),
                 MessageHandler(filters.TEXT & ~filters.COMMAND, process_gmail_submission),
